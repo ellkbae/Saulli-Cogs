@@ -27,7 +27,7 @@ most likely I have no idea what I am doing.
 [p]repo add Saulli-Cogs https://github.com/ellkbae/Saulli-Cogs
 ```
 
-> Install cog(s) from `Sauli-Cogs` in your Red instance
+> Install cog(s) from `Saulli-Cogs` in your Red instance
 ```py
 [p]cog install Saulli-Cogs <CogName>
 ```
