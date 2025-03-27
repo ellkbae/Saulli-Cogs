@@ -13,3 +13,33 @@ Feel free to not ask for help with these in the [Discord](https://discord.gg/gam
 
 If you'd like to see additional features or find a bug, don't leave an issue
 most likely I have no idea what I am doing.
+
+
+## Installation
+
+> Ensure you have downloader loaded.
+```py
+[p]load downloader
+```
+
+> Add `Saulli-Cogs` to your Red instance.
+```py
+[p]repo add Saulli-Cogs https://github.com/ellkbae/Saulli-Cogs
+```
+
+> Install cog(s) from `Sauli-Cogs` in your Red instance
+```py
+[p]cog install Saulli-Cogs <CogName>
+```
+
+> Load the cog(s).
+```py
+[p]load CogName
+```
+
+> [!NOTE]
+> `[p]` is your prefix.
+
+
+## Credits
+Thank you to everyone in the official [red server](https://discord.gg/red) and Seina for using your readMe.
