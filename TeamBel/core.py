@@ -173,7 +173,7 @@ class TeamBel(commands.Cog):
     async def team_management(self, ctx):
         """Base command for team management"""
         if ctx.invoked_subcommand is None:
-            await ctx.send("Invalid team command. Use !team create/add/remove/list/info/setlogo")
+            await ctx.send("Invalid team command. Use *team create/add/remove/list/info/setlogo")
 
     @team_management.command(name='create')
     async def create_team(self, ctx, team_name: str, logo_url: Optional[str] = None, *, description: str = "No description provided"):
@@ -209,6 +209,117 @@ class TeamBel(commands.Cog):
         
         await ctx.send(embed=embed)
 
+    @team_management.command(name='delete')
+    async def delete_team(self, ctx, team_name: str):
+        """Delete a team from the list and remove it from the JSON file"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' does not exist!")
+            return
+
+        del self.teams[team_name]  # Remove from dictionary
+        self.save_teams()  # Save updated data to JSON
+
+        await ctx.send(f"Team '{team_name}' has been deleted successfully!")
+
+    @team_management.command(name='setlogo')
+    async def set_team_logo(self, ctx, team_name: str, logo_url: str):
+        """Set or update a team's logo"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' does not exist!")
+            return
+
+        # Validate logo URL
+        logo_valid = await self.validate_image_url(logo_url)
+        if not logo_valid:
+            await ctx.send("Invalid logo URL. Please provide a valid image URL.")
+            return
+
+        # Update team logo
+        self.teams[team_name]['logo_url'] = logo_url
+        self.save_teams()
+
+        # Confirm logo update
+        embed = discord.Embed(title="Team Logo Updated", color=discord.Color.blue())
+        embed.add_field(name="Team Name", value=team_name, inline=False)
+        embed.set_thumbnail(url=logo_url)
+        
+        await ctx.send(embed=embed)
+
+    @team_management.command(name='add')
+    async def add_member(self, ctx, team_name: str, member: discord.Member):
+        """Add a member to a team by mentioning them"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' does not exist!")
+            return
+
+        if member.id in self.teams[team_name]["members"]:
+            await ctx.send(f"{member.mention} is already in the team!")
+            return
+
+        self.teams[team_name]["members"].append(member.id)
+        self.save_teams()
+        await ctx.send(f"{member.mention} added to team '{team_name}'!")
+
+    @team_management.command(name='remove')
+    async def remove_member(self, ctx, team_name: str, user_id: int):
+        """Remove a member from a team"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' does not exist!")
+            return
+
+        if user_id not in self.teams[team_name]["members"]:
+            await ctx.send(f"User {user_id} is not in the team!")
+            return
+
+        self.teams[team_name]["members"].remove(user_id)
+        self.save_teams()
+        await ctx.send(f"User {user_id} removed from team '{team_name}'!")
+
+    @team_management.command(name='list')
+    async def list_teams(self, ctx):
+        """List all existing teams"""
+        if not self.teams:
+            await ctx.send("No teams have been created yet!")
+            return
+
+        embed = discord.Embed(title="Team List", color=discord.Color.blue())
+        for team_name, team_data in self.teams.items():
+            embed.add_field(
+                name=team_name, 
+                value=f"Members: {len(team_data['members'])}\n"
+                      f"Wins: {team_data['wins']}\n"
+                      f"Losses: {team_data['losses']}", 
+                inline=False
+            )
+        await ctx.send(embed=embed)
+
+    @team_management.command(name='info')
+    async def team_info(self, ctx, team_name: str):
+        """Get detailed information about a specific team"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' does not exist!")
+            return
+
+        team = self.teams[team_name]
+        embed = discord.Embed(title=f"Team: {team_name}", color=discord.Color.green())
+        embed.description = team['description']
+        
+        # Fetch usernames dynamically
+        member_mentions = []
+        for member_id in team['members']:
+            member = ctx.guild.get_member(member_id)
+            member_mentions.append(member.mention if member else f"Unknown User ({member_id})")
+        
+        embed.add_field(name="Members", value="\n".join(member_mentions) or "No members", inline=False)
+        embed.add_field(name="Wins", value=team['wins'], inline=True)
+        embed.add_field(name="Losses", value=team['losses'], inline=True)
+        
+        # Add team logo if available
+        if team.get('logo_url'):
+            embed.set_thumbnail(url=team['logo_url'])
+        
+        await ctx.send(embed=embed)
+        
     @commands.group(name='battle')
     async def battle_management(self, ctx):
         """Base command for battle management"""
@@ -391,7 +502,7 @@ class TeamBel(commands.Cog):
 
         # Remove the active battle
         del self.active_battles[reaction.message.id]
-        
+
     @team_management.command(name='matchlog')
     async def view_match_log(self, ctx, team_name: str):
         """View the match history for a specific team"""
