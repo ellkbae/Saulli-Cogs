@@ -277,20 +277,171 @@ class TeamBel(commands.Cog):
 
     @team_management.command(name='list')
     async def list_teams(self, ctx):
-        """List all existing teams"""
-        if not self.teams:
-            await ctx.send("No teams have been created yet!")
+        """List teams with pagination"""
+        # Convert teams to a sorted list
+        sorted_teams = sorted(self.teams.keys())
+        
+        if not sorted_teams:
+            await ctx.send("No teams have been created yet.")
             return
 
-        embed = discord.Embed(title="Team List", color=discord.Color.blue())
-        for team_name, team_data in self.teams.items():
-            embed.add_field(
-                name=team_name, 
-                value=f"Members: {len(team_data['members'])}\n"
-                      f"Wins: {team_data['wins']}\n"
-                      f"Losses: {team_data['losses']}", 
-                inline=False
+        # Initialize pagination
+        self.team_list_pages = {}
+        self.team_list_current_page = {}
+
+        # Create initial page
+        def create_team_list_embed(start_index):
+            embed = discord.Embed(
+                title="Team List", 
+                color=discord.Color.blue()
             )
+            
+            # Add up to 2 teams per page
+            for i in range(start_index, min(start_index + 2, len(sorted_teams))):
+                team_name = sorted_teams[i]
+                team_info = self.teams[team_name]
+                
+                embed.add_field(
+                    name=team_name, 
+                    value=(
+                        f"**Description:** {team_info['description']}\n"
+                        f"**Wins:** {team_info['wins']}\n"
+                        f"**Losses:** {team_info['losses']}\n"
+                        f"**Members:** {team_info['members']}"
+                    ), 
+                    inline=False
+                )
+            
+            # Add page info
+            current_page = start_index // 2 + 1
+            total_pages = (len(sorted_teams) + 1) // 2
+            embed.set_footer(text=f"Page {current_page}/{total_pages}")
+            
+            return embed, current_page, total_pages
+
+        # Send initial page
+        initial_embed, current_page, total_pages = create_team_list_embed(0)
+        message = await ctx.send(embed=initial_embed)
+
+        # Store page information for this message
+        self.team_list_pages[message.id] = {
+            'teams': sorted_teams,
+            'current_page': current_page,
+            'total_pages': total_pages,
+            'create_embed': create_team_list_embed
+        }
+        self.team_list_current_page[message.id] = 0
+
+        # Add navigation reactions
+        if total_pages > 1:
+            await message.add_reaction('➡️')
+
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        """Handle team list pagination"""
+        # Check if this is a team list message
+        if user.bot or reaction.message.id not in self.team_list_pages:
+            return
+
+        # Check if user is trying to paginate
+        if reaction.emoji == '➡️':
+            # Get page information
+            page_info = self.team_list_pages[reaction.message.id]
+            current_index = self.team_list_current_page[reaction.message.id]
+            
+            # Calculate next page index
+            next_index = current_index + 2
+            
+            # Check if we've reached the end
+            if next_index >= len(page_info['teams']):
+                await reaction.remove(user)
+                return
+
+            # Create new embed
+            new_embed, new_page, total_pages = page_info['create_embed'](next_index)
+            
+            # Update message
+            await reaction.message.edit(embed=new_embed)
+            
+            # Update tracking
+            self.team_list_current_page[reaction.message.id] = next_index
+            
+            # Add previous page reaction if not first page
+            if next_index > 0:
+                await reaction.message.add_reaction('⬅️')
+            
+            # Remove used reaction
+            await reaction.remove(user)
+        
+        elif reaction.emoji == '⬅️':
+            # Get page information
+            page_info = self.team_list_pages[reaction.message.id]
+            current_index = self.team_list_current_page[reaction.message.id]
+            
+            # Calculate previous page index
+            prev_index = max(0, current_index - 2)
+            
+            # Create new embed
+            new_embed, new_page, total_pages = page_info['create_embed'](prev_index)
+            
+            # Update message
+            await reaction.message.edit(embed=new_embed)
+            
+            # Update tracking
+            self.team_list_current_page[reaction.message.id] = prev_index
+            
+            # Remove used reaction
+            await reaction.remove(user)
+
+    @team_management.command(name='updatedesc')
+    async def update_team_description(self, ctx, team_name: str, *, new_description: str):
+        """Update an existing team's description"""
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' not found!")
+            return
+
+        # Update description
+        self.teams[team_name]['description'] = new_description
+        self.save_teams()
+
+        # Create confirmation embed
+        embed = discord.Embed(
+            title="Team Description Updated", 
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Team", value=team_name, inline=False)
+        embed.add_field(name="New Description", value=new_description, inline=False)
+        
+        await ctx.send(embed=embed)
+
+    @team_management.command(name='rename')
+    async def rename_team(self, ctx, old_name: str, new_name: str):
+        """Rename an existing team"""
+        # Check if old team exists
+        if old_name not in self.teams:
+            await ctx.send(f"Team '{old_name}' not found!")
+            return
+
+        # Check if new name is already taken
+        if new_name in self.teams:
+            await ctx.send(f"Team name '{new_name}' is already in use!")
+            return
+
+        # Rename the team
+        # Create a copy of the team data with the new key
+        self.teams[new_name] = self.teams.pop(old_name)
+
+        # Save the updated teams
+        self.save_teams()
+
+        # Create confirmation embed
+        embed = discord.Embed(
+            title="Team Renamed", 
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Old Name", value=old_name, inline=False)
+        embed.add_field(name="New Name", value=new_name, inline=False)
+        
         await ctx.send(embed=embed)
 
     @team_management.command(name='info')
@@ -319,7 +470,7 @@ class TeamBel(commands.Cog):
             embed.set_thumbnail(url=team['logo_url'])
         
         await ctx.send(embed=embed)
-        
+
     @commands.group(name='battle')
     async def battle_management(self, ctx):
         """Base command for battle management"""
@@ -442,7 +593,7 @@ class TeamBel(commands.Cog):
             "team1": team1,
             "team2": team2,
             "game_name": game_name,
-            "battle_date": str(ctx.message.created_at)
+            "battle_date": ctx.message.created_at.strftime("%B %d, %Y")
         }
 
     @commands.Cog.listener()
@@ -535,9 +686,9 @@ class TeamBel(commands.Cog):
             opposing_team = teams[0] if teams and teams[0] != team_name else (teams[1] if len(teams) > 1 else 'Unknown')
             
             # Format the match log entry
-            result_text += f"**{game_name}** on {battle_date}: "
             result_text += f"vs {opposing_team}, "
-            result_text += f"Result: {'Won' if winner == team_name else 'Lost'}\n"
+            result_text += f"**{game_name}** on {battle_date}, "
+            result_text += f"Result: {'🏆 Won' if winner == team_name else '💀 Lost'}\n"
 
         embed.description = result_text
         
