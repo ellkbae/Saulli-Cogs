@@ -598,7 +598,41 @@ class TeamBel(commands.Cog):
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        """Handle winner selection via reactions"""
+        """Handle team list pagination and other reactions"""
+        # Ignore bot reactions and messages not in our tracked list
+        if user.bot:
+            return
+
+        # Check for team list pagination first
+        if hasattr(self, 'team_list_pages') and reaction.message.id in self.team_list_pages:
+            # Team list pagination logic
+            page_info = self.team_list_pages[reaction.message.id]
+            
+            try:
+                current_index = self.team_list_current_page[reaction.message.id]
+                
+                if reaction.emoji == '➡️':
+                    # Move to next page
+                    next_index = current_index + 2
+                    if next_index < len(page_info['teams']):
+                        new_embed, new_page, total_pages = page_info['create_embed'](next_index)
+                        await reaction.message.edit(embed=new_embed)
+                        self.team_list_current_page[reaction.message.id] = next_index
+                
+                elif reaction.emoji == '⬅️':
+                    # Move to previous page
+                    prev_index = max(0, current_index - 2)
+                    new_embed, new_page, total_pages = page_info['create_embed'](prev_index)
+                    await reaction.message.edit(embed=new_embed)
+                    self.team_list_current_page[reaction.message.id] = prev_index
+                
+                # Remove the user's reaction
+                await reaction.remove(user)
+            
+            except Exception as e:
+                print(f"Error in team list pagination: {e}")
+                return
+
         # Check if the reaction is on an active battle
         battle_info = self.active_battles.get(reaction.message.id)
         if not battle_info:
