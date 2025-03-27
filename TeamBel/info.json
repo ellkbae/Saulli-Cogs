@@ -1,0 +1,16 @@
+{
+    "author": [
+        "Saulli (saulli)"
+    ],
+    "install_msg": "You are trying to install a team management cog.",
+    "name": "teambel",
+    "disabled": false,
+    "short": "Team management",
+    "description": "Admins are able to create teams and add/remove players, simulate a battle event between two teams, record wins/losses, log matches, and display information on created teams.",
+    "tags": [
+        "team",
+        "management"
+    ],
+    "hidden": false,
+    "min_bot_version": "3.1.8"
+}
