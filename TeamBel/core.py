@@ -307,7 +307,7 @@ class TeamBel(commands.Cog):
                         f"**Description:** {team_info['description']}\n"
                         f"**Wins:** {team_info['wins']}\n"
                         f"**Losses:** {team_info['losses']}\n"
-                        f"**Members:** {len(team_info['members'])}
+                        f"**Members:** {len(team_info['members'])}"
                     ), 
                     inline=False
                 )
