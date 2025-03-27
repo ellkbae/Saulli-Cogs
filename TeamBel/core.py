@@ -335,6 +335,7 @@ class TeamBel(commands.Cog):
         # Add navigation reactions
         if total_pages > 1:
             await message.add_reaction('➡️')
+            await message.add_reaction('⬅️')
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
