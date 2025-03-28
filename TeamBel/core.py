@@ -777,10 +777,10 @@ class TeamBel(commands.Cog):
             opposing_team = teams[0] if teams and teams[0] != team_name else (teams[1] if len(teams) > 1 else 'Unknown')
             
             # Format the match log entry
+            result_text += f"## {team_name} vs {opposing_team}\n "
+            result_text += f"> **{game_name}** on {battle_date}\n "
+            result_text += f"> **Result:** {'🏆 Won' if winner == team_name else '💀 Lost'}\n"
             result_text += f"> **Match ID:** `{match_id}`\n"
-            result_text += f"{team_name} vs {opposing_team}\n "
-            result_text += f"**{game_name}** on {battle_date}, "
-            result_text += f"Result: {'🏆 Won' if winner == team_name else '💀 Lost'}\n"
 
         embed.description = result_text
         
