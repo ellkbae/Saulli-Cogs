@@ -1,6 +1,7 @@
 import discord
 from redbot.core import commands
 from redbot.core.bot import Red
+import uuid
 import json
 import os
 import aiohttp
@@ -394,6 +395,59 @@ class TeamBel(commands.Cog):
             # Remove used reaction
             await reaction.remove(user)
 
+    @team_management.command(name='resetmatchlog')
+    async def reset_match_log(self, ctx, team_name: str):
+        """Reset a team's match log"""
+        # Check if team exists
+        if team_name not in self.teams:
+            await ctx.send(f"Team '{team_name}' not found!")
+            return
+
+        # Confirm with the user before resetting
+        confirm_message = await ctx.send(
+            embed=discord.Embed(
+                title="Reset Match Log Confirmation", 
+                description=f"Are you sure you want to reset the match log for {team_name}? \n\n"
+                            "React with ✅ to confirm or ❌ to cancel.",
+                color=discord.Color.orange()
+            )
+        )
+
+        # Add confirmation reactions
+        await confirm_message.add_reaction('✅')
+        await confirm_message.add_reaction('❌')
+
+        def check(reaction, user):
+            return (
+                user == ctx.author and 
+                str(reaction.emoji) in ['✅', '❌'] and 
+                reaction.message.id == confirm_message.id
+            )
+
+        try:
+            # Wait for user's confirmation reaction
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+            if str(reaction.emoji) == '✅':
+                # Reset match log
+                self.teams[team_name]['match_log'] = []
+                self.save_teams()
+
+                # Create confirmation embed
+                embed = discord.Embed(
+                    title="Match Log Reset", 
+                    description=f"Match log for team '{team_name}' has been cleared.", 
+                    color=discord.Color.green()
+                )
+                await ctx.send(embed=embed)
+            else:
+                # Cancelled
+                await ctx.send("Match log reset cancelled.")
+
+        except asyncio.TimeoutError:
+            # Timeout if no reaction within 60 seconds
+            await ctx.send("Confirmation timed out. Match log was not reset.")
+
     @team_management.command(name='updatedesc')
     async def update_team_description(self, ctx, team_name: str, *, new_description: str):
         """Update an existing team's description"""
@@ -658,8 +712,9 @@ class TeamBel(commands.Cog):
         self.teams[winner]['wins'] += 1
         self.teams[loser]['losses'] += 1
 
-        # Create detailed match log entry
+        # Create detailed match log entry with unique ID
         match_result = {
+            "match_id": str(uuid.uuid4()),  # Generate a unique ID for the match
             "teams": [battle_info['team1'], battle_info['team2']],
             "winner": winner,
             "loser": loser,
@@ -716,18 +771,93 @@ class TeamBel(commands.Cog):
             loser = match.get('loser', 'Unknown')
             game_name = match.get('game_name', 'Unspecified Game')
             battle_date = match.get('battle_date', 'Unknown Date')
+            match_id = match.get('match_id', 'N/A')
 
             # Determine the opposing team
             opposing_team = teams[0] if teams and teams[0] != team_name else (teams[1] if len(teams) > 1 else 'Unknown')
             
             # Format the match log entry
-            result_text += f"vs {opposing_team}, "
+            result_text += f"**Match ID:** `{match_id}`\n\n"
+            result_text += f"{team_name} vs {opposing_team}\n "
             result_text += f"**{game_name}** on {battle_date}, "
             result_text += f"Result: {'🏆 Won' if winner == team_name else '💀 Lost'}\n"
 
         embed.description = result_text
         
         await ctx.send(embed=embed)
+
+    @team_management.command(name='deletematch')
+    async def delete_match(self, ctx, match_id: str):
+        """Delete a specific match from all involved teams' match logs"""
+        # Find and remove the match from all team logs
+        deleted_match = False
+        for team_name, team_data in self.teams.items():
+            # Find and remove the match with the given ID
+            team_data['match_log'] = [
+                match for match in team_data['match_log'] 
+                if match.get('match_id') != match_id
+            ]
+
+        # Determine if any matches were deleted
+        for team_name, team_data in self.teams.items():
+            if not deleted_match:
+                # Check if the match was in this team's log
+                if not any(match.get('match_id') == match_id for match in team_data['match_log']):
+                    deleted_match = True
+
+        # Save changes
+        self.save_teams()
+
+        # Create result embed
+        if deleted_match:
+            embed = discord.Embed(
+                title="Match Deleted", 
+                description=f"Match with ID `{match_id}` has been removed from all team logs.", 
+                color=discord.Color.green()
+            )
+        else:
+            embed = discord.Embed(
+                title="Match Not Found", 
+                description=f"No match found with ID `{match_id}`.", 
+                color=discord.Color.red()
+            )
+        
+        await ctx.send(embed=embed)
+
+    @team_management.command(name='matchinfo')
+    async def view_match_details(self, ctx, match_id: str):
+        """View details of a specific match by its ID"""
+        matching_matches = []
+
+        # Search for the match across all teams
+        for team_name, team_data in self.teams.items():
+            for match in team_data['match_log']:
+                if match.get('match_id') == match_id:
+                    matching_matches.append((team_name, match))
+
+        # Create embed to show match details
+        if matching_matches:
+            match = matching_matches[0][1]  # Take the first match found
+            embed = discord.Embed(
+                title="Match Details", 
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Match ID", value=match_id, inline=False)
+            embed.add_field(name="Teams", value=" vs ".join(match['teams']), inline=False)
+            embed.add_field(name="Winner", value=match['winner'], inline=True)
+            embed.add_field(name="Loser", value=match['loser'], inline=True)
+            embed.add_field(name="Game", value=match['game_name'], inline=False)
+            embed.add_field(name="Date", value=match['battle_date'], inline=False)
+            
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Match Not Found", 
+                    description=f"No match found with ID `{match_id}`.", 
+                    color=discord.Color.red()
+                )
+            )
 
 def setup(bot):
     bot.add_cog(TeamBel(bot))
