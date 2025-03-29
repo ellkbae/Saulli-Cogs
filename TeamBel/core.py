@@ -577,17 +577,20 @@ class TeamBel(commands.Cog):
         team1_info = self.teams[team1]
         team2_info = self.teams[team2]
         
-        # Fetch team members' mentions
+        # Fetch team members' mentions and IDs
         async def get_team_members(team_members):
             mentions = []
+            member_ids = []  # track member IDs
             for member_id in team_members:
                 member = ctx.guild.get_member(member_id)
                 if member:
                     mentions.append(member.mention)
-            return mentions or ["No members"]
+                    member_ids.append(member_id)  # Store the member ID
+            return mentions or ["No members"], member_ids  # Return both mentions and IDs
 
-        team1_members = await get_team_members(team1_info['members'])
-        team2_members = await get_team_members(team2_info['members'])
+        team1_members, team1_member_ids = await get_team_members(team1_info['members'])
+        team2_members, team2_member_ids = await get_team_members(team2_info['members'])
+    
 
         # Add team details to embed
         embed.add_field(
@@ -638,15 +641,17 @@ class TeamBel(commands.Cog):
             battle_message = await ctx.send(embed=embed)
         
         # Add selection reactions
-        team1_emoji = "1️⃣"
-        team2_emoji = "2️⃣"
+        team1_emoji = "🔵"
+        team2_emoji = "🔴"
         await battle_message.add_reaction(team1_emoji)
         await battle_message.add_reaction(team2_emoji)
 
-        # Store battle information
+        # Store battle information with member IDs
         self.active_battles[battle_message.id] = {
             "team1": team1,
             "team2": team2,
+            "team1_members": team1_member_ids,
+            "team2_members": team2_member_ids,
             "game_name": game_name,
             "battle_date": ctx.message.created_at.strftime("%B %d, %Y")
         }
@@ -699,10 +704,10 @@ class TeamBel(commands.Cog):
             return
 
         # Determine winner based on reaction
-        if reaction.emoji == "1️⃣":
+        if reaction.emoji == "🔵":
             winner = battle_info['team1']
             loser = battle_info['team2']
-        elif reaction.emoji == "2️⃣":
+        elif reaction.emoji == "🔴":
             winner = battle_info['team2']
             loser = battle_info['team1']
         else:
@@ -718,6 +723,8 @@ class TeamBel(commands.Cog):
             "teams": [battle_info['team1'], battle_info['team2']],
             "winner": winner,
             "loser": loser,
+            "team1_members": battle_info['team1_members'],
+            "team2_members": battle_info['team2_members'],
             "game_name": battle_info['game_name'],
             "battle_date": battle_info['battle_date']
         }
@@ -848,6 +855,53 @@ class TeamBel(commands.Cog):
             embed.add_field(name="Loser", value=match['loser'], inline=True)
             embed.add_field(name="Game", value=match['game_name'], inline=False)
             embed.add_field(name="Date", value=match['battle_date'], inline=False)
+            
+            # Add team members if available
+            if 'team1_members' in match and 'team2_members' in match:
+                # Get winner and loser member lists
+                winner_member_ids = match['team1_members'] if match['winner'] == match['teams'][0] else match['team2_members']
+                loser_member_ids = match['team2_members'] if match['loser'] == match['teams'][1] else match['team1_members']
+                
+                # Create mentions for winner team members
+                winner_members = []
+                for member_id in winner_member_ids:
+                    member = ctx.guild.get_member(member_id)
+                    if member:
+                        winner_members.append(member.mention)  # Use mention format instead of ID
+                
+                # Create mentions for loser team members
+                loser_members = []
+                for member_id in loser_member_ids:
+                    member = ctx.guild.get_member(member_id)
+                    if member:
+                        loser_members.append(member.mention)  # Use mention format instead of ID
+                
+                # Add fields with mentions
+                if winner_members:
+                    embed.add_field(
+                        name=f"{match['winner']} Members", 
+                        value="\n".join(winner_members) or "None", 
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name=f"{match['winner']} Members", 
+                        value="No members found", 
+                        inline=False
+                    )
+                
+                if loser_members:
+                    embed.add_field(
+                        name=f"{match['loser']} Members", 
+                        value="\n".join(loser_members) or "None", 
+                        inline=False
+                    )
+                else:
+                    embed.add_field(
+                        name=f"{match['loser']} Members", 
+                        value="No members found", 
+                        inline=False
+                    )
             
             await ctx.send(embed=embed)
         else:
