@@ -103,6 +103,13 @@ class TeamBel(commands.Cog):
         
         # Check if user has any of the allowed roles
         return any(role.id in self.battle_winner_roles for role in user.roles)
+    
+    def can_use_command_check():
+        async def predicate(ctx):
+            return ctx.author.guild_permissions.administrator or any(
+                role.id in ctx.cog.battle_winner_roles for role in ctx.author.roles
+            )
+        return commands.check(predicate)
 
     @commands.command(name='seteventschannel')
     @commands.has_permissions(administrator=True)
@@ -170,13 +177,13 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.group(name='team')
-    @commands.check(lambda ctx: ctx.author.guild_permissions.administrator)
     async def team_management(self, ctx):
         """Base command for team management"""
         if ctx.invoked_subcommand is None:
             await ctx.send("Invalid team command. Use *team create/add/remove/list/info/setlogo")
 
     @team_management.command(name='create')
+    @can_use_command_check()
     async def create_team(self, ctx, team_name: str, logo_url: Optional[str] = None, *, description: str = "No description provided"):
         """Create a new team with optional logo"""
         if team_name in self.teams:
@@ -211,6 +218,7 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @team_management.command(name='delete')
+    @can_use_command_check()
     async def delete_team(self, ctx, team_name: str):
         """Delete a team from the list and remove it from the JSON file"""
         if team_name not in self.teams:
@@ -223,6 +231,7 @@ class TeamBel(commands.Cog):
         await ctx.send(f"Team '{team_name}' has been deleted successfully!")
 
     @team_management.command(name='setlogo')
+    @can_use_command_check()
     async def set_team_logo(self, ctx, team_name: str, logo_url: str):
         """Set or update a team's logo"""
         if team_name not in self.teams:
@@ -247,6 +256,7 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @team_management.command(name='add')
+    @can_use_command_check()
     async def add_member(self, ctx, team_name: str, member: discord.Member):
         """Add a member to a team by mentioning them"""
         if team_name not in self.teams:
@@ -262,6 +272,7 @@ class TeamBel(commands.Cog):
         await ctx.send(f"{member.mention} added to team '{team_name}'!")
 
     @team_management.command(name='remove')
+    @can_use_command_check()
     async def remove_member(self, ctx, team_name: str, user_id: int):
         """Remove a member from a team"""
         if team_name not in self.teams:
@@ -396,6 +407,7 @@ class TeamBel(commands.Cog):
             await reaction.remove(user)
 
     @team_management.command(name='resetmatchlog')
+    @can_use_command_check()
     async def reset_match_log(self, ctx, team_name: str):
         """Reset a team's match log"""
         # Check if team exists
@@ -449,6 +461,7 @@ class TeamBel(commands.Cog):
             await ctx.send("Confirmation timed out. Match log was not reset.")
 
     @team_management.command(name='updatedesc')
+    @can_use_command_check()
     async def update_team_description(self, ctx, team_name: str, *, new_description: str):
         """Update an existing team's description"""
         if team_name not in self.teams:
@@ -470,6 +483,7 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @team_management.command(name='rename')
+    @can_use_command_check()
     async def rename_team(self, ctx, old_name: str, new_name: str):
         """Rename an existing team"""
         # Check if old team exists
@@ -530,7 +544,7 @@ class TeamBel(commands.Cog):
     async def battle_management(self, ctx):
         """Base command for battle management"""
         if ctx.invoked_subcommand is None:
-            await ctx.send("Invalid battle command. Use !battle create or !battle setimage")
+            await ctx.send("Invalid battle command. Use *battle create or *battle setimage")
 
     @battle_management.command(name='setimage')
     @commands.has_permissions(administrator=True)
@@ -554,6 +568,7 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @battle_management.command(name='create')
+    @can_use_command_check()
     async def team_battle(self, ctx, team1: str, team2: str, *, game_name: str = "Unspecified Game"):
         """Create a team battle with team details and members"""
         # Validate teams exist
@@ -794,6 +809,7 @@ class TeamBel(commands.Cog):
         await ctx.send(embed=embed)
 
     @team_management.command(name='deletematch')
+    @can_use_command_check()
     async def delete_match(self, ctx, match_id: str):
         """Delete a specific match from all involved teams' match logs"""
         # Find and remove the match from all team logs
