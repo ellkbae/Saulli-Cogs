@@ -267,6 +267,10 @@ class TeamBel(commands.Cog):
             await ctx.send(f"{member.mention} is already in the team!")
             return
 
+        # Set the first added member as Team Leader
+        if not self.teams[team_name].get("leader"):
+            self.teams[team_name]["leader"] = member.id
+        
         self.teams[team_name]["members"].append(member.id)
         self.save_teams()
         await ctx.send(f"{member.mention} added to team '{team_name}'!")
@@ -528,7 +532,13 @@ class TeamBel(commands.Cog):
         member_mentions = []
         for member_id in team['members']:
             member = ctx.guild.get_member(member_id)
-            member_mentions.append(member.mention if member else f"Unknown User ({member_id})")
+            if member:
+                member_str = f"{member.mention}"
+                if team.get("leader") == member_id:
+                    member_str += " *(Team Leader)*"
+                member_mentions.append(member_str)
+            else:
+                member_mentions.append(f"Unknown User ({member_id})")
         
         embed.add_field(name="Members", value="\n".join(member_mentions) or "No members", inline=False)
         embed.add_field(name="Wins", value=team['wins'], inline=True)
