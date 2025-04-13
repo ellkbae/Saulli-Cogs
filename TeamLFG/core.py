@@ -31,7 +31,7 @@ DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/135307774774817600
 class LFGView(View):
     def __init__(self, invite_url: str):
         super().__init__(timeout=None)
-        self.add_item(Button(label="Join Voice", url=invite_url, style=discord.ButtonStyle.link, emoji="🎧"))
+        self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji="🎮"))
 
 
 def load_config():
@@ -104,7 +104,7 @@ class TeamLFG(commands.Cog):
         embed = discord.Embed(
             title=f"🎮 Playing: {game}",
             description=f"**{message}**",
-            color=discord.Color.purple(),
+            color=discord.Color.from_rgb(136, 164, 237),
             timestamp=ctx.message.created_at
         )
         embed.add_field(name="🗣️ Voice Channel", value=voice_channel.name, inline=True)
