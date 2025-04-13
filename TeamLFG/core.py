@@ -18,7 +18,7 @@ GAME_IMAGES = {
     "csgo": "https://1000logos.net/wp-content/uploads/2018/01/CSGO-Logo.jpg",
     "csgo2": "https://1000logos.net/wp-content/uploads/2018/01/CSGO-Logo.jpg",
     "roblox": "https://1000logos.net/wp-content/uploads/2017/09/Roblox-Logo-1.jpg",
-    "minecraft: "https://1000logos.net/wp-content/uploads/2018/10/Minecraft-Logo.jpg",
+    "minecraft": "https://1000logos.net/wp-content/uploads/2018/10/Minecraft-Logo.jpg",
     "mc": "https://1000logos.net/wp-content/uploads/2018/10/Minecraft-Logo.jpg",
     "overwatch": "https://1000logos.net/wp-content/uploads/2018/03/Overwatch-Logo.jpg",
     "marvelrivals": "https://www.marvelrivals.com/pc/gw/20241128194803/img/logo_ad22b142.png"
