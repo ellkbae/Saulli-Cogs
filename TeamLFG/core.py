@@ -64,67 +64,67 @@ class TeamLFG(commands.Cog):
 
     @commands.command(name="lfg")
     async def lfg(self, ctx, message: str = None, game: str = None, number_of_people: int = None):
-    user = ctx.author
-    voice_state = user.voice
-
-    # Check for command format
-    if not all([message, game, number_of_people]):
-        await ctx.send(
-            f"❗ Usage: `*lfg \"message\" \"game name\" number`\n"
-            f"Example: `*lfg \"Need 2 more!\" \"Valorant\" 5`"
+        user = ctx.author
+        voice_state = user.voice
+    
+        # Check for command format
+        if not all([message, game, number_of_people]):
+            await ctx.send(
+                f"❗ Usage: `*lfg \"message\" \"game name\" number`\n"
+                f"Example: `*lfg \"Need 2 more!\" \"Valorant\" 5`"
+            )
+            return
+    
+        # Check number_of_people validity
+        if not (1 <= number_of_people <= 10):
+            await ctx.send("Please set the number of people between 1 and 10.")
+            return
+    
+        # Check if user is in a voice channel
+        if not voice_state or not voice_state.channel:
+            await ctx.send("You need to be connected to a voice channel to use this command.")
+            return
+    
+        # Optional: Check if restricted to a specific channel
+        config = getattr(self.bot, "lfg_config", {})
+        allowed_channel_id = config.get(str(ctx.guild.id))
+        if allowed_channel_id and ctx.channel.id != allowed_channel_id:
+            await ctx.send(f"You can only use this command in <#{allowed_channel_id}>.")
+            return
+    
+        voice_channel = voice_state.channel
+        await voice_channel.edit(user_limit=number_of_people)
+        invite = await voice_channel.create_invite(max_age=3600, max_uses=10)
+    
+        # Get image
+        game_key = game.lower()
+        image_url = game_images.get(game_key, DEFAULT_IMAGE_URL)
+    
+        # Create styled embed
+        embed = discord.Embed(
+            title=f"🎮 Playing: {game}",
+            description=f"**{message}**",
+            color=discord.Color.purple(),
+            timestamp=ctx.message.created_at
         )
-        return
-
-    # Check number_of_people validity
-    if not (1 <= number_of_people <= 10):
-        await ctx.send("Please set the number of people between 1 and 10.")
-        return
-
-    # Check if user is in a voice channel
-    if not voice_state or not voice_state.channel:
-        await ctx.send("You need to be connected to a voice channel to use this command.")
-        return
-
-    # Optional: Check if restricted to a specific channel
-    config = getattr(self.bot, "lfg_config", {})
-    allowed_channel_id = config.get(str(ctx.guild.id))
-    if allowed_channel_id and ctx.channel.id != allowed_channel_id:
-        await ctx.send(f"You can only use this command in <#{allowed_channel_id}>.")
-        return
-
-    voice_channel = voice_state.channel
-    await voice_channel.edit(user_limit=number_of_people)
-    invite = await voice_channel.create_invite(max_age=3600, max_uses=10)
-
-    # Get image
-    game_key = game.lower()
-    image_url = game_images.get(game_key, DEFAULT_IMAGE_URL)
-
-    # Create styled embed
-    embed = discord.Embed(
-        title=f"🎮 Playing: {game}",
-        description=f"**{message}**",
-        color=discord.Color.purple(),
-        timestamp=ctx.message.created_at
-    )
-    embed.add_field(name="🗣️ Voice Channel", value=voice_channel.name, inline=True)
-    embed.add_field(name="👥 Players Needed", value=f"{number_of_people}", inline=True)
-    embed.add_field(name="🔗 Invite", value=f"[Click to Join]({invite.url})", inline=False)
-    embed.set_thumbnail(url=image_url)
-    embed.set_footer(
-        text=f"Created by {user.display_name}",
-        icon_url=user.avatar.url if user.avatar else None
-    )
-
-    # Send embed with button
-    view = LFGView(invite.url)
-    await ctx.send(embed=embed, view=view)
-
-    # Delete user message after success
-    try:
-        await ctx.message.delete()
-    except discord.Forbidden:
-        pass  # Bot doesn't have permission to delete messages
+        embed.add_field(name="🗣️ Voice Channel", value=voice_channel.name, inline=True)
+        embed.add_field(name="👥 Players Needed", value=f"{number_of_people}", inline=True)
+        embed.add_field(name="🔗 Invite", value=f"[Click to Join]({invite.url})", inline=False)
+        embed.set_thumbnail(url=image_url)
+        embed.set_footer(
+            text=f"Created by {user.display_name}",
+            icon_url=user.avatar.url if user.avatar else None
+        )
+    
+        # Send embed with button
+        view = LFGView(invite.url)
+        await ctx.send(embed=embed, view=view)
+    
+        # Delete user message after success
+        try:
+            await ctx.message.delete()
+        except discord.Forbidden:
+            pass  # Bot doesn't have permission to delete messages
 
             
 async def setup(bot):
