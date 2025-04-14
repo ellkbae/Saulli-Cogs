@@ -69,7 +69,7 @@ class TeamLFG(commands.Cog):
     async def lfg(self, ctx, message: str = None, game: str = None, number_of_people: int = None):
         user = ctx.author
         voice_state = user.voice
-        winning_emoji = discord.utils.get(ctx.guild.emojis, name="winning")
+        winning_emoji = discord.utils.get(ctx.guild.emojis, name=":winning:1358992571946504202")
     
         # Check for command format
         if not all([message, game, number_of_people]):
