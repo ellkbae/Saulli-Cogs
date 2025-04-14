@@ -34,7 +34,7 @@ DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/135307774774817600
 class LFGView(View):
     def __init__(self, invite_url: str):
         super().__init__(timeout=None)
-        self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji={winning_emoji}))
+        self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji=f"{winning_emoji}"))
 
 
 def load_config():
