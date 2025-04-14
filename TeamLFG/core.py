@@ -32,9 +32,9 @@ DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/135307774774817600
 
 
 class LFGView(View):
-    def __init__(self, invite_url: str):
+    def __init__(self, invite_url: str, winning_emoji="🏆"):
         super().__init__(timeout=None)
-        self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji=f"{winning_emoji}"))
+        self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji=winning_emoji))
 
 
 def load_config():
@@ -70,6 +70,7 @@ class TeamLFG(commands.Cog):
         user = ctx.author
         voice_state = user.voice
         winning_emoji = self.bot.get_emoji(1358992571946504202)
+        
     
         # Check for command format
         if not all([message, game, number_of_people]):
@@ -121,7 +122,7 @@ class TeamLFG(commands.Cog):
         )
     
         # Send embed with button
-        view = LFGView(invite.url)
+        view = LFGView(invite.url, winning_emoji)
         await ctx.send(embed=embed, view=view)
     
         # Delete user message after success
