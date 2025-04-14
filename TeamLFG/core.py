@@ -28,10 +28,11 @@ game_images = {
 # Fallback image if no match found
 DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/1353077747748176003/1355691101700231188/gs_logo_small-01.png?ex=67fcf6fa&is=67fba57a&hm=1ae4c0ef5e1e428f39702fe7370da5b275dc597bcc666c44060f726a78b7e76e&=&format=webp&quality=lossless"
 
-winning_emoji = discord.utils.get(ctx.guild.emojis, name="winning")
+
 
 class LFGView(View):
     def __init__(self, invite_url: str):
+        winning_emoji = discord.utils.get(ctx.guild.emojis, name="winning")
         super().__init__(timeout=None)
         self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji=winning_emoji))
 
