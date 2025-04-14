@@ -32,7 +32,6 @@ DEFAULT_IMAGE_URL = "https://media.discordapp.net/attachments/135307774774817600
 
 class LFGView(View):
     def __init__(self, invite_url: str):
-        winning_emoji = discord.utils.get(ctx.guild.emojis, name="winning")
         super().__init__(timeout=None)
         self.add_item(Button(label="Join Party", url=invite_url, style=discord.ButtonStyle.link, emoji=winning_emoji))
 
@@ -69,6 +68,7 @@ class TeamLFG(commands.Cog):
     async def lfg(self, ctx, message: str = None, game: str = None, number_of_people: int = None):
         user = ctx.author
         voice_state = user.voice
+        winning_emoji = discord.utils.get(ctx.guild.emojis, name="winning")
     
         # Check for command format
         if not all([message, game, number_of_people]):
