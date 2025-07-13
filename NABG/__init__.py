@@ -26,5 +26,6 @@ from redbot.core.bot import Red
 
 from .core import NABG
 
-async def setup(bot):
-    await bot.add_cog(NABG(bot))
+async def setup(bot: Red) -> None:
+    cog = NABG(bot)
+    await bot.add_cog(cog)
