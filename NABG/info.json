@@ -1,0 +1,15 @@
+{
+    "author": ["Saulli"],
+    "install_msg": "Thanks for installing the New Accounts Be Gone cog.",
+    "name": "NABG",
+    "disabled": false,
+    "short": "A simple cog for automatically kicking accounts created today.",
+    "description": "Automatically kicks accounts created today.",
+    "tags": [
+        "utility",
+        "tools"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "type": "COG"
+}
